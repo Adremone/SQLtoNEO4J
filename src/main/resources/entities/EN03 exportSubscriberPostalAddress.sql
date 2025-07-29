@@ -8,4 +8,4 @@ SELECT
     '"' || s.object_id || '-PostalAddress' || '"' AS localName,
     '"' || s.object_id || '-PostalAddress' || '"' AS globalName
 FROM postal_address p
-JOIN subscriber s ON s.branch_id = p.branch_id;
+JOIN subscriber s ON s.object_id = p.party_role_id;

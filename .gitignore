@@ -4,6 +4,7 @@ Copy the code
 
 # Log files
 *.log
+*.csv
 
 # BlueJ files
 *.ctxt
