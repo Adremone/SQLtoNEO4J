@@ -14,8 +14,10 @@ import java.util.LinkedHashMap;
 public class TransformationUtils {
     @Getter @Setter
     private static LinkedHashMap<String,String> entityFileNames = new LinkedHashMap<>(); // csv ouputNames
-    @Getter @Setter`
+    @Getter @Setter
     private static HashMap<String,String> entityTypeMap = new HashMap<>();
+    @Getter @Setter
+    private static HashMap<String,String>AssociationTypeMap = new HashMap<>();
     private static boolean generateCypher;
     @Getter
     private static HashMap<String,ArrayList<String>>nodeLabels = new HashMap<>();

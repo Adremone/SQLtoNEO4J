@@ -106,6 +106,19 @@ public class DataImporter {
         return "SELECT COUNT(*) FROM (" + query +")";
     }
 
+    public static void makeAsscoiationQueries(String queryDirectory) throws IOException {
+        File folder = new File(queryDirectory);
+        String query = "";
+        String associationNo = "";
+        Pattern p = Pattern.compile("(?is)AS_(\\d+) export(.+)\\.sql");
+        for(File f:folder.listFiles()){
+            Matcher matcher = p.matcher(f.getName());
+            if(matcher.matches()){
+
+            }
+        }
+    }
+
     public static void createCSV(String outputDirectory) throws Exception {
         int fetchSize = 1000;  // smaller fetch size for safer streaming
 
