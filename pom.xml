@@ -40,6 +40,11 @@
       <version>23.7.0.25.01</version>
     </dependency>
     <dependency>
+      <groupId>org.neo4j.driver</groupId>
+      <artifactId>neo4j-java-driver</artifactId>
+      <version>5.19.0</version> <!-- use latest available -->
+    </dependency>
+    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <version>1.18.20</version>

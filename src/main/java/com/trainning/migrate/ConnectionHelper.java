@@ -5,6 +5,8 @@ import lombok.NoArgsConstructor;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import org.neo4j.driver.*;
+
 
 @NoArgsConstructor
 @Data
@@ -15,8 +17,7 @@ public class ConnectionHelper {
     private String password = "";
 
     // extend the code to other drivers later on
-    public static Connection createConnection(String url, String username, String password) {
-        String[] params= url.split(":");
+    public static Connection createSQLConnection(String url, String username, String password) {
         Connection conn = null;
 
         try{
@@ -39,5 +40,13 @@ public class ConnectionHelper {
         }
         return conn;
     }
+
+    public static Driver createNEO4jConnection() {
+        String uri = "jdbc:neo4j:bolt://localhost:7687";
+        String password = "password";
+        String user = "neo4j";
+        return GraphDatabase.driver(uri, AuthTokens.basic(user, password));
+    }
+
 
 }

@@ -2,18 +2,24 @@ package com.trainning.migrate;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.logging.Logger;
+import com.trainning.migrate.TransformationUtils;
 
-public class QueryFetcher {
-    // { name --> [query,fileName,rowCount] }
-    private static final LinkedHashMap<String,ArrayList<String>>queryMap = new LinkedHashMap<>();
-    private static final ArrayList<String>filenames = new ArrayList<>(List.of(
+public class DataImporter {
+
+    private static final Logger log = Logger.getLogger(DataImporter.class.getName());
+    private static final HashMap<String,String>sqlQueries = TransformationUtils.getSqlQueries();
+    private static final HashMap<String,String>fileNames = TransformationUtils.getEntityFileNames();
+    private static final HashMap<String,String>associationFileNames = TransformationUtils.getAssociationFileNames();
+    private static final HashMap<String,Long>rowCountMap = TransformationUtils.getRowCount();
+    private static final String CSV_DIR = "src/main/resources/output/";
+    private static final ArrayList<String>givenFileNames = new ArrayList<>(List.of(
             "subscriber_customer",
             "subscription_service",
             "subscriberPostalAddress_property",
@@ -59,66 +65,72 @@ public class QueryFetcher {
             "ontTypeContainer_group",
             "ontModel_logicalDevice"
     ));
-    private static String username = "SRITEMP";
-    private static String password = "Comptel_2017";
-    private static String url = "jdbc:oracle:thin:@//localhost:1524/SRI_PDB";
-    private static Connection conn = ConnectionHelper.createConnection(QueryFetcher.url, QueryFetcher.username, QueryFetcher.password);
+    private static final String USERNAME = "SRITEMP";
+    private static final String PASSWORD = "Comptel_2017";
+    private static final String URL = "jdbc:oracle:thin:@//localhost:1524/SRI_PDB";
+    private static final Connection conn = ConnectionHelper.createSQLConnection(DataImporter.URL, DataImporter.USERNAME, DataImporter.PASSWORD);
 
-    public static void makeQueries(String queryDirectory) throws IOException {
+    public static void makeEntityQueries(String queryDirectory) throws IOException {
         // add exception to check directory here
         File folder = new File(queryDirectory);
         String query = "";
         String name = "";
-        Pattern pattern = Pattern.compile("EN\\d+ export(.+)\\.sql",Pattern.CASE_INSENSITIVE);
+        int queryNo = 0;
+        Pattern pattern = Pattern.compile("(?is)EN(\\d+) export(.+)\\.sql",Pattern.CASE_INSENSITIVE);
         int count = 0;
-        System.out.println("------------------- Extracting queries --------------------");
-        for(File file:folder.listFiles()){
+        log.info("------------------- Extracting queries --------------------");
+        for(File file: Objects.requireNonNull(folder.listFiles())){
             Matcher matcher = pattern.matcher(file.getName());
-            System.out.println(file.getName());
+            log.info(file.getName());
             if(matcher.matches()){
-                name = matcher.group(1);
+                queryNo = Integer.parseInt(matcher.group(1));
+                log.info(String.valueOf(queryNo));
+                name = matcher.group(2);
             }else{
-                System.out.println("Entity name not found.\nUsing filename instead");
+                log.info("Entity name not found.\nUsing filename instead");
                 name = file.getName();
             }
             query = new String(Files.readAllBytes(file.toPath())).replace(";","");
-            QueryFetcher.queryMap.put(name,new ArrayList<>(List.of(query,QueryFetcher.filenames.get(count))));
+            sqlQueries.put(name,query);
+            fileNames.put(name,DataImporter.givenFileNames.get(count));
+            log.info(String.valueOf(count)+":Extracted query for "+name);
             count++;
-            System.out.println(String.valueOf(count)+":Extracted query for "+name);
         }
-        System.out.println("Total Queries Extracted:"+String.valueOf(count+1));
-        System.out.println("------------------------ ----------------------------------");
+        log.info("Total Queries Extracted:"+count+1);
+        log.info("-----------------------------------------------------------");
     }
 
-    private static String getCountQuery(String query) throws Exception{
+    private static String getCountQuery(String query){
         if(query==null||query.isBlank()||!query.matches("(?is).*FROM.*")) return "";
-        String tablesQuery = query.split("(?is)FROM")[1];
-        tablesQuery = tablesQuery.split("(?is)group by")[0];
-        String countQuery = "SELECT COUNT(*) FROM "+tablesQuery;
-        return countQuery;
+
+        return "SELECT COUNT(*) FROM (" + query +")";
     }
 
-    public static void fetchCSV() throws Exception {
-        int fetchSize = 10000;
+    public static void createCSV(String outputDirectory) throws Exception {
+        int fetchSize = 1000;  // smaller fetch size for safer streaming
 
-        if (QueryFetcher.queryMap.size() == 0) {
-            System.out.println("Please populate the queries using makeQueries Method");
+        if (sqlQueries.isEmpty()) {
+            log.info("Please populate the queries using makeQueries Method");
             return;
         }
 
-        System.out.println("-----------------------------------------");
-        System.out.printf("|  %-25s | %8s  |%n", "Entity Name", "RowCount");
-        System.out.println("-----------------------------------------");
+        Path path = Paths.get(outputDirectory);
+        Files.createDirectories(path);
+
+        log.info("------------------------------------------");
+        log.info(String.format("|  %-25s | %8s  |%n", "Entity Name", "RowCount"));
+        log.info("------------------------------------------");
 
         // Get row counts first
-        for (Map.Entry<String, ArrayList<String>> entry : QueryFetcher.queryMap.entrySet()) {
+        for (Map.Entry<String, String> entry : sqlQueries.entrySet()) {
             try (Statement s = conn.createStatement()) {
                 s.setFetchSize(fetchSize);
-                ArrayList<String> values = entry.getValue();
                 String name = entry.getKey();
-                String countQuery = getCountQuery(values.get(0));
-                int rowCount = 0;
+                long rowCount = 0;
+                System.out.println("---"+entry.getKey());
+                String countQuery = "";
 
+                countQuery = getCountQuery(entry.getValue());
                 if (!countQuery.isBlank()) {
                     try (ResultSet rs = s.executeQuery(countQuery)) {
                         if (rs.next()) {
@@ -126,33 +138,32 @@ public class QueryFetcher {
                         }
                     }
                 }
-
-                values.add(String.valueOf(rowCount));
-                System.out.printf("%-25s | %8d%n", name, rowCount);
+                rowCountMap.put(name, rowCount);
+                log.info(String.format("|  %-25s | %8d  |%n", name, rowCount));
             }
         }
+        log.info("---------------------------------------");
 
         // Now fetch data per query
-        for (Map.Entry<String, ArrayList<String>> entry : QueryFetcher.queryMap.entrySet()) {
-            ArrayList<String> values = entry.getValue();
+        for (Map.Entry<String, String> entry : sqlQueries.entrySet()) {
             String name = entry.getKey();
-            String query = values.get(0);
+            String query = entry.getValue();
             if (query.isBlank()) {
-                System.out.println("Entity " + name + " has no query");
+                log.info("Entity " + name + " has no query");
                 continue;
             }
             int currRow = 0;
-            String fileName = values.get(1);
+            String fileName = CSV_DIR + fileNames.get(name) + ".csv";
 
             try (Statement s = conn.createStatement()) {
                 s.setFetchSize(fetchSize);
                 try (ResultSet rs = s.executeQuery(query);
-                     BufferedWriter csvWriter = new BufferedWriter(new FileWriter(fileName))) {
+                     BufferedWriter csvWriter = new BufferedWriter(new FileWriter(fileName), 16 * 1024)) { // 16KB buffer
 
                     ResultSetMetaData meta = rs.getMetaData();
                     int columnCount = meta.getColumnCount();
 
-                    // Write headers
+                    // Write CSV header
                     for (int i = 1; i <= columnCount; i++) {
                         csvWriter.append(meta.getColumnName(i));
                         if (i < columnCount) csvWriter.append(",");
@@ -170,13 +181,32 @@ public class QueryFetcher {
                             if (i < columnCount) csvWriter.append(",");
                         }
                         csvWriter.append("\n");
+
                         currRow++;
-                        System.out.print("\rNo of rows inserted for " + name + ": " + currRow + "\\" + values.get(2));
-                        System.out.flush();
+
+                        if (currRow % 1000 == 0) {
+                            log.info("\rNo of rows inserted for " + name + ": " + currRow + "\\" + rowCountMap.get(name));
+                            System.out.print("\033[H\033[2J");
+                            System.out.flush();
+                        }
+
+                        if (currRow % 10000 == 0) {
+                            csvWriter.flush();
+
+                        }
                     }
+
+                    csvWriter.flush();
+                    System.out.print("\033[H\033[2J");
+                    System.out.flush();
                 }
             }
-            System.out.println("\nFile " + fileName + " parsed successfully!");
+
+            log.info("\nFile " + fileName + " parsed successfully!");
         }
+    }
+
+    public static void clearQueries(){
+        sqlQueries.clear();
     }
 }

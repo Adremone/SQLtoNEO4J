@@ -2,9 +2,15 @@ package com.trainning.migrate;
 
 public class App {
     public static void main(String[] args) throws Exception {
-        String directory = "src/main/resources/entities";
-        // add gui here
-        QueryFetcher.makeQueries(directory);
-        QueryFetcher.fetchCSV();
+
+        String entityDirectory = "src/main/resources/entities";
+        String associationDirectory = "src/main/resources/associations";
+        DataImporter.makeEntityQueries(entityDirectory);
+        DataImporter.createCSV("src/main/resources/output/entity");
+        DataExporter.generateCypherQueries();
+        DataImporter.makeAssociationQueries(associationDirectory);
+        DataImporter.createCSV("src/main/resources/output/associations");
+        DataExporter.generateCypherQueries();
+        DataImporter.clearQueries();
     }
 }

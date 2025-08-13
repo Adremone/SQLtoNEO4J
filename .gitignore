@@ -55,3 +55,6 @@ nbdist/
 .DS_Store
 Thumbs.db
 
+*/**/*.csv
+*/**/*.sql
+*/**/*.cql

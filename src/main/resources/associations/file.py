@@ -1,0 +1,57 @@
+import os
+
+data = """
+AS_07 street_as_site
+AS_08 street_as_servingProperty
+AS_09 site_as_subservingProperty
+AS_10 servingProperty_as_subServingProperty
+AS_11 centralOffice_as_centralOfficeContainer
+AS_12 centralOfficeContainer_as_servingPropety 
+AS_13 endUserLocaltion_as_ontPhysicalDevice
+AS_14 splitterLocation_as_splitterPhysicalDevice
+AS_15 servingProperty_as_splitterPhysicalDevice
+AS_16 subservingProperty_as_splitterPhysicalDevice
+AS_17 centralOffice_as_oltPhysicalDevice
+AS_18 oltLogicalDevice_as_lineProfile
+AS_19 ontLogicalDevice_as_lineProfile
+AS_20 oltLogicalDevice_as_oltPhysicalDevice 
+AS_21 ontLogicalDevice_as_ontPhysicalDevice
+AS_22 ontLogicalDevice_as_ipV4
+AS_23 ontLogicalDevice_as_ipV6
+AS_24 ontIdPool_as_oltPhysicalDevice
+AS_25 ontIdPool_as_ontIdIdentifier
+AS_26 ontIdIdentifier_as_ontPhysicalDevice
+AS_27 oltPhysicalDevice_as_ontModelContainer
+AS_28 oltPhysicalDevice_as_ontLinkContainer
+AS_29 oltPhysicalDevice_as_splitterContainer
+AS_30 oltPhysicalDevice_as_oltChassis
+AS_31 oltChassis_as_oltShelf
+AS_32 oltShelf_as_oltSlot
+AS_33 oltSlot_as_oltNetworkCard
+AS_34 oltNetworkCard_as_oltNetworkPort
+AS_35 oltNetworkPort_as_physicalLink 
+AS_36 physicalLink_as_splitterInPort
+AS_37 splitterInPort_as_splitterInCard
+AS_38 splitterInCard_as_splitterSlot
+AS_39 splitterSlot_as_splitterChassisShelf
+AS_40 splitterChassisShelf_as_splitterChassis
+AS_41 splitterChassis_as_splitterPhysicalDevice
+AS_42 splitterPhysicalDevice_as_splitterContainer
+AS_43 splitterSlot_as_splitterOutCard
+AS_44 splitterOutCard_as_splitterOutPort
+AS_45 splitterOutPort_as_physicalLink 
+AS_46 physicalLink_as_ontAccessPort
+AS_47 ontAccessPort_as_ontAccessCard  
+AS_48 ontAccessCard_as_ontPhysicalDevice 
+AS_49 ontPhysicalDevice_as_ontLinkContainer
+AS_50 ontModelContainer_as_ontModel
+"""
+
+
+
+for line in data.strip().split('\n'):
+    filepath = line+'.sql'
+    with open(filepath, 'w') as f:
+        f.write(f'-- SQL script for {filepath}\n\n-- TODO: Write actual SQL statements here\n')
+
+print(f".sql files created in")
