@@ -7,12 +7,12 @@ import java.util.Map;
 
 public class AssociationMap extends LinkedHashMap<String, AssociationValue>{
 
-    public String print(String assoicationNo){
+    public String print(String associationNo){
         StringBuilder s = new StringBuilder();
-        String to = super.get(assoicationNo).getTo();
-        String outgoing = super.get(assoicationNo).getFrom();
-        String name = super.get(assoicationNo).getName();
-        long rowCount = super.get(assoicationNo).getCount();
+        String to = super.get(associationNo).getTo();
+        String outgoing = super.get(associationNo).getFrom();
+        String name = super.get(associationNo).getName();
+        long rowCount = super.get(associationNo).getCount();
         s.append(outgoing);
         s.append("---[");
         s.append(name);

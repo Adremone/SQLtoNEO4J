@@ -1,5 +1,7 @@
 package com.trainning.migrate;
 
+import com.trainning.migrate.containers.AssociationMap;
+import com.trainning.migrate.containers.EntryMap;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,14 +18,12 @@ public class TransformationUtils {
     private static LinkedHashMap<String,String> entityFileNames = new LinkedHashMap<>(); // csv ouputNames
     @Getter @Setter
     private static HashMap<String,String> entityTypeMap = new HashMap<>();
-    @Getter @Setter
-    private static HashMap<String,String>AssociationTypeMap = new HashMap<>();
-    private static boolean generateCypher;
     @Getter
     private static HashMap<String,ArrayList<String>>nodeLabels = new HashMap<>();
-    @Getter
-    private static LinkedHashMap<String,String> associationFileNames = new LinkedHashMap<>(); // csv ouputNames
-
+    @Getter @Setter
+    private static AssociationMap associations = new AssociationMap(); // csv ouputNames
+    @Getter @Setter
+    private static EntryMap entities = new EntryMap();
     static {
         nodeLabels.put("customer", new ArrayList<>(Arrays.asList(
                 "com.nokia.nsw.uiv.model.common.party.PartyRole",
@@ -47,7 +47,7 @@ public class TransformationUtils {
         )));
         nodeLabels.put("configuration",new ArrayList<>(Arrays.asList(
                 "com.nokia.nsw.uiv.model.resource.logical.Configuration",
-                "`com.nokia.nsw.uiv.model.resource.logical.LogicalResource",
+                "com.nokia.nsw.uiv.model.resource.logical.LogicalResource",
                 "com.nokia.nsw.uiv.model.resource.Resource"
         )));
         nodeLabels.put("physicalComponent",new ArrayList<>(Arrays.asList(

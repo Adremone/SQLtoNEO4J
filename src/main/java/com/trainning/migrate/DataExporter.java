@@ -16,7 +16,7 @@ public class DataExporter {
     public HashMap<String,Long>nodeCount;
     public HashMap<String,Long>relationCount;
 
-    private static LinkedHashMap<String,String> fileNames = TransformationUtils.getEntityFileNames();
+    private static final LinkedHashMap<String,String> fileNames = TransformationUtils.getEntityFileNames();
 
 
     public static String generateCypherQuery(String fileName,String type,String queryName) throws Exception{

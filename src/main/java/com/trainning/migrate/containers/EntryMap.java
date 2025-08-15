@@ -1,6 +1,8 @@
 package com.trainning.migrate.containers;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class EntryMap extends LinkedHashMap<String, EntityValue> {
     public String print(String entityNo){
@@ -23,6 +25,24 @@ public class EntryMap extends LinkedHashMap<String, EntityValue> {
         entry.setType(type);
         entry.setOutputFileName(outputFileName);
         super.put(number,entry);
+    }
+
+    public ArrayList<String> list(){
+        StringBuilder s = new StringBuilder();
+        ArrayList<String> entites = new ArrayList<>();
+        for(Map.Entry<String, EntityValue> p:super.entrySet()){
+            s.setLength(0);
+            if(Integer.parseInt(p.getKey())<10) s.append("0");
+            s.append(p.getKey());
+            s.append("-");
+            s.append(p.getValue().getType());
+            s.append("-");
+            s.append(p.getValue().getCount());
+            s.append("-");
+            s.append(p.getValue().getOutputFileName());
+            entites.add(s.toString());
+        }
+        return entites;
     }
 
 }

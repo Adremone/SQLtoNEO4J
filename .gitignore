@@ -58,4 +58,5 @@ Thumbs.db
 */**/*.csv
 */**/*.sql
 */**/*.cql
+*/**/output/*
 *.env

@@ -14,4 +14,6 @@ public class EntityValue {
     String type;
     String outputFileName;
     Long count;
+    private String sqlQuery;
+    private String cypherQuery;
 }
