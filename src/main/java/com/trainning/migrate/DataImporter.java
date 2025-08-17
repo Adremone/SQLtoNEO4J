@@ -14,6 +14,7 @@ import com.trainning.migrate.containers.AssociationMap;
 import com.trainning.migrate.containers.AssociationValue;
 import com.trainning.migrate.containers.EntityValue;
 import com.trainning.migrate.containers.EntryMap;
+import com.trainning.migrate.utils.Props;
 import io.github.cdimascio.dotenv.Dotenv;
 
 public class DataImporter {
@@ -37,7 +38,8 @@ public class DataImporter {
     }
 
     public static void makeEntityQueries() throws IOException {
-        String entityFileNames = "src/main/resources/entityOutputFileNames.txt";
+        Props properties = new Props();
+        String entityFileNames = properties.getProps().getProperty("filenames.entity.path");
         String directory = "src/main/resources/entities";
         parseEntityFileNames(entityFileNames,givenEntityFileNames);
         File folder = new File(directory);
@@ -73,7 +75,6 @@ public class DataImporter {
             count++;
         }
         for(String info:entities.list()) log.info(info);
-
     }
 
     public static void makeEntityQueries(String queryDirectory) throws IOException {
