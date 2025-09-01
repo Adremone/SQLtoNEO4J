@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class EntryMap extends LinkedHashMap<String, EntityValue> {
+public class EntityMap extends LinkedHashMap<String, EntityValue> {
     public String print(String entityNo){
         StringBuilder s = new StringBuilder();
         String type = super.get(entityNo).getType();

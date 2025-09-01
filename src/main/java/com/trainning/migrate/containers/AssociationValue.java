@@ -1,9 +1,9 @@
 package com.trainning.migrate.containers;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Getter
 @Setter
@@ -29,5 +29,4 @@ public class AssociationValue {
         System.out.println("cypherQuery:"+cypherQuery);
         System.out.println("count:"+count);
     }
-
 }

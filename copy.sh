@@ -1,4 +1,4 @@
-SRC_DIR="./output"
+SRC_DIR="./output/entities_output"
 POD_NAME="doc-uiv-inst2-uiv-neo4j-cneo-core-0"
 NAMESPACE="doc-uiv-inst2"
 TARGET_DIR="/var/lib/neo4j/import"

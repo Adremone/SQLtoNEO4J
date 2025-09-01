@@ -9,38 +9,31 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.logging.Logger;
-import com.trainning.migrate.TransformationUtils;
 import com.trainning.migrate.containers.AssociationMap;
 import com.trainning.migrate.containers.AssociationValue;
 import com.trainning.migrate.containers.EntityValue;
-import com.trainning.migrate.containers.EntryMap;
+import com.trainning.migrate.containers.EntityMap;
 import com.trainning.migrate.utils.Props;
 import io.github.cdimascio.dotenv.Dotenv;
+import org.neo4j.driver.Driver;
 
 public class DataImporter {
     private static final Logger log = Logger.getLogger(DataImporter.class.getName());
-    private static final HashMap<String,String>sqlQueries = TransformationUtils.getSqlQueries();
-    private static final HashMap<String,String>fileNames = TransformationUtils.getEntityFileNames();
-    private static final HashMap<String,Long>rowCountMap = TransformationUtils.getRowCount();
-    private static final String CSV_DIR = "src/main/resources/output/";
     private static final ArrayList<String>givenEntityFileNames = new ArrayList<>();
     private static final ArrayList<String>givenAssociationFileNames = new ArrayList<>();
     private static final String USERNAME = Dotenv.load().get("SQL_USER");
     private static final String PASSWORD = Dotenv.load().get("SQL_PASSWORD");
     private static final String URL = Dotenv.load().get("SQL_URI");
-    private static final Connection conn = ConnectionHelper.createSQLConnection(DataImporter.URL, DataImporter.USERNAME, DataImporter.PASSWORD);
-
-    private static final AssociationMap associations = TransformationUtils.getAssociations();
-    private static final EntryMap entities = TransformationUtils.getEntities();
+    private static final Connection conn = ConnectionHelper.createSQLConnection(URL, USERNAME, PASSWORD);
+    private static final Driver cqlConntection = ConnectionHelper.createNEO4jConnection();
 
     public static void parseEntityFileNames(String path,List<String>fileNames) throws IOException {
         fileNames.addAll(Files.readAllLines(Path.of(path)));
     }
 
-    public static void makeEntityQueries() throws IOException {
+    public static void makeEntityQueries(EntityMap entities,String directory) throws IOException {
         Props properties = new Props();
         String entityFileNames = properties.getProps().getProperty("filenames.entity.path");
-        String directory = "src/main/resources/entities";
         parseEntityFileNames(entityFileNames,givenEntityFileNames);
         File folder = new File(directory);
         String query = "";
@@ -57,15 +50,14 @@ public class DataImporter {
                 log.info(String.valueOf(queryNo));
                 name = matcher.group(2);
             }else{
-                log.info("Entity name not found.\nUsing filename instead");
+                log.info("Entity name not found.\nUsing filename instead.");
                 name = file.getName();
             }
             query = new String(Files.readAllBytes(file.toPath())).replace(";","");
+            query+="FETCH FIRST 100 ROWS ONLY";
             String[] parts = DataImporter.givenEntityFileNames.get(count).split("_");
             String type = "";
-            if(parts.length>=2){
-                type = parts[1].replace(".csv","");
-            }
+            if(parts.length>=2) type = parts[1].replace(".csv","");
             EntityValue entity = new EntityValue();
             entity.setSqlQuery(query);
             entity.setName(name);
@@ -77,68 +69,39 @@ public class DataImporter {
         for(String info:entities.list()) log.info(info);
     }
 
-    public static void makeEntityQueries(String queryDirectory) throws IOException {
-        String entityFileNames = "src/main/resources/entityOutputFileNames.txt";
-        parseEntityFileNames(entityFileNames,givenEntityFileNames);
-        // add exception to check directory here
-        File folder = new File(queryDirectory);
-        String query = "";
-        String name = "";
-        int queryNo = 0;
-        Pattern pattern = Pattern.compile("(?is)EN(\\d+) export(.+)\\.sql",Pattern.CASE_INSENSITIVE);
-        int count = 0;
-        log.info("------------------- Extracting queries --------------------");
-        for(File file: Objects.requireNonNull(folder.listFiles())){
-            Matcher matcher = pattern.matcher(file.getName());
-            log.info(file.getName());
-            if(matcher.matches()){
-                queryNo = Integer.parseInt(matcher.group(1));
-                log.info(String.valueOf(queryNo));
-                name = matcher.group(2);
-            }else{
-                log.info("Entity name not found.\nUsing filename instead");
-                name = file.getName();
-            }
-            query = new String(Files.readAllBytes(file.toPath())).replace(";","");
-            sqlQueries.put(name,query);
-            fileNames.put(name,DataImporter.givenEntityFileNames.get(count));
-            log.info(String.valueOf(count)+":Extracted query for "+name);
-            count++;
-        }
-        log.info("Total Queries Extracted:"+count+1);
-        log.info("-----------------------------------------------------------");
-    }
-
     private static String getCountQuery(String query){
         if(query==null||query.isBlank()||!query.matches("(?is).*FROM.*")) return "";
         return "SELECT COUNT(*) FROM (" + query +")";
     }
 
-    public static void makeAssociationQueries(String queryDirectory) throws IOException {
-        String associationFileNames = "src/main/resources/associationOutputFileNames.txt";
+    public static void makeAssociationQueries(EntityMap entities,AssociationMap associations,String queryDirectory) throws IOException {
+        String associationFileNames = "src/main/resources/filenames/associationOutputFileNames.txt";
         parseEntityFileNames(associationFileNames,givenAssociationFileNames);
         File folder = new File(queryDirectory);
         String query = "";
+        System.out.println("inside");
         Pattern p = Pattern.compile("(?is)AS_(\\d+) (\\w+)_as_(\\w+)\\s*\\.sql");
         for(File f:folder.listFiles()){
             Matcher matcher = p.matcher(f.getName());
-            System.out.println(f.getName());
             if(matcher.matches()){
                 int associationNo = Integer.parseInt(matcher.group(1));
+                System.out.println(associationNo);
                 String from = matcher.group(2);
                 String to = matcher.group(3);
-                int count = 0;
-                AssociationValue a = new AssociationValue();
-                a.setTo(to);
-                a.setFrom(from);
-                a.setIdentifier(f.getName().replaceAll("AS_(\\d+)","").replaceAll(".sql",""));
-                a.setCount(0);
-                a.setOutputFileName(givenAssociationFileNames.get(associationNo-1));
+                AssociationValue associationValue = new AssociationValue();
+                associationValue.setTo(to);
+                associationValue.setFrom(from);
+                associationValue.setIdentifier(f.getName().replaceAll("AS_(\\d+)","").replaceAll(".sql",""));
+                associationValue.setCount(0);
+                String[] parts = givenAssociationFileNames.get(associationNo-1).split(":");
+                associationValue.setOutputFileName(parts[0]);
+                if(parts.length>1) associationValue.setName(parts[1]);
+                System.out.println(associationValue);
                 String countQuery = getCountQuery(query);
                 query = new String(Files.readAllBytes(f.toPath()));
-                a.setSqlQuery(query.replace(";",""));
-                a.print();
-                associations.put(String.valueOf(associationNo),a);
+                associationValue.setSqlQuery(query.replace(";",""));
+                associationValue.print();
+                associations.put(String.valueOf(associationNo),associationValue);
             }
         }
         for(String a:associations.listAssociations()){
@@ -146,14 +109,13 @@ public class DataImporter {
         }
     }
 
-    public static void createCSV(String outputDirectory) throws Exception {
+    public static void createCSV(EntityMap entities, String outputDirectory) throws Exception {
         int fetchSize = 1000;  // smaller fetch size for safer streaming
-
-        if (sqlQueries.isEmpty()) {
-            log.info("Please populate the queries using makeQueries Method");
-            return;
-        }
-
+        // find some way to trigger error
+//        if (sqlQueries.isEmpty()) {
+//            log.info("Please populate the queries using makeQueries Method");
+//            return;
+//        }
         Path path = Paths.get(outputDirectory);
         Files.createDirectories(path);
 
@@ -162,15 +124,16 @@ public class DataImporter {
         log.info("------------------------------------------");
 
         // Get row counts first
-        for (Map.Entry<String, String> entry : sqlQueries.entrySet()) {
+        for (Map.Entry<String, EntityValue> entry : entities.entrySet()) {
             try (Statement s = conn.createStatement()) {
                 s.setFetchSize(fetchSize);
+                EntityValue entity = entry.getValue();
                 String name = entry.getKey();
                 long rowCount = 0;
-                System.out.println("---"+entry.getKey());
+                log.info("---" + entry.getKey()+" "+entity.getName());
                 String countQuery = "";
 
-                countQuery = getCountQuery(entry.getValue());
+                countQuery = getCountQuery(entity.getSqlQuery());
                 if (!countQuery.isBlank()) {
                     try (ResultSet rs = s.executeQuery(countQuery)) {
                         if (rs.next()) {
@@ -178,39 +141,43 @@ public class DataImporter {
                         }
                     }
                 }
-                rowCountMap.put(name, rowCount);
+                entity.setCount(rowCount);
+                entities.put(entry.getKey(),entity);
                 log.info(String.format("|  %-25s | %8d  |%n", name, rowCount));
             }
         }
         log.info("---------------------------------------");
-
+        System.out.println(outputDirectory);
         // Now fetch data per query
-        for (Map.Entry<String, String> entry : sqlQueries.entrySet()) {
-            String name = entry.getKey();
-            String query = entry.getValue();
-            if (query.isBlank()) {
-                log.info("Entity " + name + " has no query");
+        for (Map.Entry<String, EntityValue> entry : entities.entrySet()) {
+            String index = entry.getKey();
+            EntityValue entity = entry.getValue();
+            if (entity.getSqlQuery().isBlank()) {
+                log.info("Entity " + index + ":" + entity.getName() + "has no query");
                 continue;
             }
             int currRow = 0;
-            String fileName = CSV_DIR + fileNames.get(name) + ".csv";
-
+            String fileName = outputDirectory+"/" + entity.getOutputFileName() + ".csv";
+//            log.info(fileName);
             try (Statement s = conn.createStatement()) {
                 s.setFetchSize(fetchSize);
-                try (ResultSet rs = s.executeQuery(query);
-                     BufferedWriter csvWriter = new BufferedWriter(new FileWriter(fileName), 16 * 1024)) { // 16KB buffer
+                System.out.println(fileName);
+                System.out.println(entity);
+                try (ResultSet rs = s.executeQuery(entity.getSqlQuery());
+                    BufferedWriter csvWriter = new BufferedWriter(new FileWriter(fileName), 16 * 1024)) { // 16KB buffer
 
                     ResultSetMetaData meta = rs.getMetaData();
                     int columnCount = meta.getColumnCount();
 
-                    // Write CSV header
+
                     for (int i = 1; i <= columnCount; i++) {
                         csvWriter.append(meta.getColumnName(i));
                         if (i < columnCount) csvWriter.append(",");
                     }
+
                     csvWriter.append("\n");
 
-                    // Write rows
+
                     while (rs.next()) {
                         for (int i = 1; i <= columnCount; i++) {
                             String currVal = rs.getString(i);
@@ -225,7 +192,7 @@ public class DataImporter {
                         currRow++;
 
                         if (currRow % 1000 == 0) {
-                            log.info("\rNo of rows inserted for " + name + ": " + currRow + "\\" + rowCountMap.get(name));
+                            log.info("\rNo of rows inserted for " + entity.getName() + ": " + currRow + "\\" + entity.getCount());
                             System.out.print("\033[H\033[2J");
                             System.out.flush();
                         }
@@ -236,7 +203,7 @@ public class DataImporter {
                     }
 
                     csvWriter.flush();
-                    System.out.print("\033[H\033[2J");
+                    log.info("\033[H\033[2J");
                     System.out.flush();
                 }
             }
@@ -245,7 +212,7 @@ public class DataImporter {
         }
     }
 
-    public static void createAssociationCSV(String outputDirectory) throws Exception{
+    public static void createAssociationCSV(EntityMap entities, AssociationMap associations, String outputDirectory) throws Exception{
         int fetchSize = 1000;
         Path path = Paths.get(outputDirectory);
         Files.createDirectories(path);
@@ -277,8 +244,8 @@ public class DataImporter {
                 }
 
                 int currRow = 0;
-                String fileName = outputDirectory + association.getOutputFileName() + ".csv";
-
+                String fileName = outputDirectory+"/" + association.getOutputFileName().split(":")[0] + ".csv";
+                System.out.println(fileName);
 
                 try (ResultSet rs = s.executeQuery(association.getSqlQuery())){
                     BufferedWriter csvWriter = new BufferedWriter(new FileWriter(fileName), 16 * 1024); // 16KB buffer

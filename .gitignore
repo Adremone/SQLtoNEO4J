@@ -60,3 +60,5 @@ Thumbs.db
 */**/*.cql
 */**/output/*
 *.env
+ut photos
+ut photos/*

@@ -1,7 +1,7 @@
 package com.trainning.migrate;
 
 import com.trainning.migrate.containers.AssociationMap;
-import com.trainning.migrate.containers.EntryMap;
+import com.trainning.migrate.containers.EntityMap;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -23,7 +23,7 @@ public class TransformationUtils {
     @Getter @Setter
     private static AssociationMap associations = new AssociationMap(); // csv ouputNames
     @Getter @Setter
-    private static EntryMap entities = new EntryMap();
+    private static EntityMap entities = new EntityMap();
     static {
         nodeLabels.put("customer", new ArrayList<>(Arrays.asList(
                 "com.nokia.nsw.uiv.model.common.party.PartyRole",
@@ -65,6 +65,7 @@ public class TransformationUtils {
         nodeLabels.put("physicalPort",new ArrayList<>(Arrays.asList(
                 "com.nokia.nsw.uiv.model.resource.infra.physical.PhysicalPort",
                 "com.nokia.nsw.uiv.model.resource.infra.InfraComponent",
+                "com.nokia.nsw.uiv.model.resource.infra.physical.PhysicalComponent",
                 "com.nokia.nsw.uiv.model.resource.infra.InfraResource",
                 "com.nokia.nsw.uiv.model.resource.Resource"
         )));
